@@ -122,7 +122,7 @@ def resolver_formula_cnf(cnf: CNF) -> list | None:
 
     return None
 
-def executar_experimento(n_jogadores: int, s_estrategias: int, d_arestas: int, instancias: int) -> tuple:
+def executar_experimento_1(n_jogadores: int, s_estrategias: int, d_arestas: int, instancias: int) -> tuple:
     # Executa um experimento para diferentes números de jogadores.
     # Para cada configuração, gera jogos gráficos aleatórios, transforma-os em CNF,
     # resolve a fórmula e registra o tempo de execução e o percentual de instâncias satisfatíveis.
@@ -156,10 +156,49 @@ def executar_experimento(n_jogadores: int, s_estrategias: int, d_arestas: int, i
 
     return jogadores, tempos, percentuais
 
-def plotar_resultados() -> None:
+def executar_experimento_2(n_jogadores: int, s_estrategias: int, d_arestas: int, instancias: int) -> tuple:
+    # Executa um experimento para diferentes números de arestas.
+    # Para cada configuração, gera jogos gráficos aleatórios, transforma-os
+    # em CNF, resolve a fórmula e registra o tempo de execução e o percentual de instâncias satisfatíveis.
+    arestas = []
+    tempos = []
+    percentuais = []
+    alpha = []
+
+    # Percorre diferentes quantidades de arestas
+    for aresta in range(2, d_arestas + 2, 2):
+        instancias_satisfativeis = 0
+
+        inicio = time.perf_counter()
+
+        # Gera e resolve múltiplas instâncias aleatórias
+        for _ in range(instancias):
+            tabelas_utilidade, vizinhancas = gerar_jogo_grafico_aleatorio(n_jogadores, s_estrategias, aresta)
+            cnf = transformar_jogo_para_cnf(tabelas_utilidade, vizinhancas, s_estrategias)
+
+            modelo = resolver_formula_cnf(cnf)
+
+            if modelo is not None:
+                instancias_satisfativeis += 1
+
+        fim = time.perf_counter()
+
+        arestas.append(aresta)
+        tempos.append(fim - inicio)
+
+        # Calcula o percentual de instâncias que possuem equilíbrio de Nash puro
+        percentual = (100 * instancias_satisfativeis / instancias)
+        percentuais.append(percentual)
+
+        # Calcula a razão entre o número de arestas e o número de jogadores
+        alpha.append(aresta / n_jogadores)
+
+    return arestas, tempos, percentuais, alpha
+
+def plotar_resultados_1() -> None:
     # Executa o experimento e plota o tempo de execução e o percentual
     # de instâncias satisfatíveis em função do número de jogadores.
-    jogadores, tempos, percentuais = executar_experimento(50, 10, 10, 200)
+    jogadores, tempos, percentuais = executar_experimento_1(50, 10, 10, 200)
 
     # Cria a figura e o eixo correspondente ao tempo de execução
     figura, eixo_tempo = plt.subplots(figsize=(8, 5))
@@ -180,3 +219,30 @@ def plotar_resultados() -> None:
     plt.title("Tempo de execução e existência de equilíbrio de Nash puro")
 
     plt.show()
+
+def plotar_resultados_2() -> None:
+    # Executa o experimento e plota o tempo de execução e o percentual
+    # de instâncias satisfatíveis em função do número de arestas.
+    arestas, tempos, percentuais, alpha = executar_experimento_2(160, 2, 80, 40)
+
+    # Cria a figura e o eixo correspondente ao tempo de execução
+    figura, eixo_tempo = plt.subplots(figsize=(8, 5))
+
+    eixo_tempo.plot(arestas, tempos, color="black")
+    eixo_tempo.set_xlabel("Número de arestas")
+    eixo_tempo.set_ylabel("Tempo médio (s)", color="black")
+    eixo_tempo.tick_params(axis="y", labelcolor="black")
+    eixo_tempo.grid(True)
+
+    # Cria um segundo eixo para representar o percentual de instâncias satisfatíveis
+    eixo_percentual = eixo_tempo.twinx()
+
+    eixo_percentual.plot(arestas, percentuais, color="red")
+    eixo_percentual.set_ylabel("Instâncias satisfatíveis (%)", color="red")
+    eixo_percentual.tick_params(axis="y", labelcolor="red")
+
+    plt.title("Tempo de execução e existência de equilíbrio de Nash puro")
+
+    plt.show()
+
+    print(f"α: {alpha}")
